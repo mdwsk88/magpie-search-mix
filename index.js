@@ -16,7 +16,7 @@ export const SearchMix = async (_input, options = {}) => {
   return {
     search: {
       mix: {
-        name: "Search Mix (mdwsk88)",
+        name: "Search Mix",
         keysURL: "https://github.com/mdwsk88/magpie-search-mix#set-it-up",
         keyOptional: false,
         async execute({ query, count, key }, ctx) {

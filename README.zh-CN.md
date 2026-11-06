@@ -40,7 +40,7 @@ magpie plugin add github:mdwsk88/magpie-search-mix
 
 ## 配置
 
-在 magpie 的 **设置 › 模型 › 联网搜索** 里添加 **Search Mix (mdwsk88)**，排到第一位，在它的密钥栏里写上来源，用 `+` 连接：
+在 magpie 的 **设置 › 模型 › 联网搜索** 里添加 **Search Mix**，排到第一位，在它的密钥栏里写上来源，用 `+` 连接：
 
 ```text
 deepseek=sk-…+you+tavily=tvly-…

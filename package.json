@@ -1,6 +1,6 @@
 {
   "name": "magpie-search-mix",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A magpie web search API that asks two or more search APIs at once and merges their pages.",
   "type": "module",
   "main": "index.js",
@@ -33,7 +33,7 @@
     "url": "https://github.com/mdwsk88/magpie-search-mix/issues"
   },
   "magpie": {
-    "name": "Search Mix (mdwsk88)",
+    "name": "Search Mix",
     "summary": {
       "en": "A web search API that asks two or more search APIs at once (Tavily, Brave, Exa, You.com, DeepSeek, SearXNG and more) and merges their pages, deduplicated.",
       "zh": "联网搜索 API：同时问两家或更多搜索 API（Tavily、Brave、Exa、You.com、DeepSeek、SearXNG 等），去重后合并结果。"

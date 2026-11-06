@@ -40,7 +40,7 @@ magpie plugin add github:mdwsk88/magpie-search-mix
 
 ## Set it up
 
-In magpie's **Settings › Models › Web search**, add **Search Mix (mdwsk88)**, move it to the top, and write its sources in its key field, joined by `+`:
+In magpie's **Settings › Models › Web search**, add **Search Mix**, move it to the top, and write its sources in its key field, joined by `+`:
 
 ```text
 deepseek=sk-…+you+tavily=tvly-…
