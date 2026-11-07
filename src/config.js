@@ -1,4 +1,4 @@
-// Search Mix's sources are written in its key field in magpie (Settings ›
+// magpie-search-mix's sources are written in its key field in magpie (Settings ›
 // Models › Web search), so their keys stay in magpie's own key store:
 //
 //   deepseek=sk-…+you+tavily=tvly-a|tvly-b+searxng@https://searx.example.com
@@ -25,7 +25,7 @@ export const HOW = 'join sources with "+", e.g. deepseek=<key>+you+tavily=<key>'
 export function parseSources(text) {
   const raw = String(text ?? "").trim()
   if (!raw) {
-    throw new ConfigError(`no sources in Search Mix's key field: ${HOW} (APIs: ${ids()})`)
+    throw new ConfigError(`no sources in magpie-search-mix's key field: ${HOW} (APIs: ${ids()})`)
   }
   const sources = []
   const errors = []
@@ -72,6 +72,6 @@ export function parseSources(text) {
     seen.set(vendor, n)
     sources.push({ vendor, name: v.name, keys, url, label: n > 1 ? `${vendor}#${n}` : vendor })
   })
-  if (errors.length) throw new ConfigError(`Search Mix's key field: ${errors.join("; ")}`)
+  if (errors.length) throw new ConfigError(`magpie-search-mix's key field: ${errors.join("; ")}`)
   return sources
 }

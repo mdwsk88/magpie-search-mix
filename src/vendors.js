@@ -1,4 +1,4 @@
-// The search APIs Search Mix can ask. Each is asked, and its reply read,
+// The search APIs magpie-search-mix can ask. Each is asked, and its reply read,
 // the way magpie asks the same API in its own Web search list
 // (yetone/magpie, internal/gateway/search_api.go), so a source here
 // behaves as that API does in magpie.
@@ -11,7 +11,7 @@
 //                                                          send with a 200
 // Adding a search API is adding an entry here, with tests in test/vendors.test.js.
 
-export const VERSION = "0.1.1"
+export const VERSION = "0.1.2"
 export const USER_AGENT = `magpie-search-mix/${VERSION} (+https://github.com/mdwsk88/magpie-search-mix)`
 
 // the most of a page's text passed on; magpie cuts it again to its own limit

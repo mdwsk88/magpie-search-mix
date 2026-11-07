@@ -1,4 +1,4 @@
-# magpie 混合搜索插件（Search Mix）
+# magpie 混合搜索插件（magpie-search-mix）
 
 [English](README.md)
 
@@ -6,9 +6,11 @@
 
 这是 mdwsk88 写的非官方社区插件，不属于 magpie。
 
+magpie v0.1.3199 及以后的版本自己也能混合搜索，两者的区别见 [magpie 自带的混合模式](#magpie-自带的混合模式)。
+
 ## 它做什么
 
-把“混合搜索”排在 magpie「联网搜索」列表第一位后，智能体经 magpie 联网搜索时（Claude Code 的 WebSearch、Codex 的 web_search、magpie 的联网搜索 MCP 服务器）：
+把 magpie-search-mix 排在 magpie「联网搜索」列表第一位后，智能体经 magpie 联网搜索时（Claude Code 的 WebSearch、Codex 的 web_search、magpie 的联网搜索 MCP 服务器）：
 
 1. 同时问它的前两个来源；
 2. 某个来源失败、没找到、超过 10 秒没回，或者它的密钥被拒后都在暂停期，就由下一个还没问过的来源顶上；
@@ -40,7 +42,7 @@ magpie plugin add github:mdwsk88/magpie-search-mix
 
 ## 配置
 
-在 magpie 的 **设置 › 模型 › 联网搜索** 里添加 **Search Mix**，排到第一位，在它的密钥栏里写上来源，用 `+` 连接：
+在 magpie 的 **设置 › 模型 › 联网搜索** 里添加 **magpie-search-mix**，排到第一位，在它的密钥栏里写上来源，用 `+` 连接：
 
 ```text
 deepseek=sk-…+you+tavily=tvly-…
@@ -84,7 +86,7 @@ magpie plugin options magpie-search-mix '{"width": 3}'
 
 ## 最多给几条
 
-magpie 交给智能体的搜索结果，不会超过这次搜索要的条数：Claude Code 的 WebSearch 要 6 条，magpie 的联网搜索 MCP 服务器要 1–20 条（默认 6 条）。所以混合搜索只能在这个条数内混合，做不到把每家找到的全部结果都交出去。要做到这一点，得在 magpie 内部混合，[yetone/magpie#2845](https://github.com/yetone/magpie/issues/2845) 提的就是这个功能。magpie 有了它以后，就用不着这个插件了。
+magpie 交给智能体的搜索结果，不会超过这次搜索要的条数。Claude Code 的 WebSearch 和 Codex 的 web_search 不指定条数，magpie 就按设置里的 **每次搜索的结果条数** 给：默认 6 条，可设 1–20 条（magpie v0.1.3199 起；之前固定 6 条）。magpie 的联网搜索 MCP 服务器按调用方指定的条数给，1–20 条。这个插件只在这个条数内混合。
 
 一次 60 题的小规模个人测试：每题都有已知答案和官方网站，看给出的 6 条结果里有没有官方网站、有没有答案（满分 120）：
 
@@ -97,6 +99,23 @@ magpie 交给智能体的搜索结果，不会超过这次搜索要的条数：C
 | 只用 DeepSeek | 94 |
 
 只给 6 条时，加入第三家多半会把前两家的好结果挤掉，所以 `width` 默认是 2。单独用时哪家最好会随题目变化：之前一组 20 题是 Tavily，这 60 题是 You.com。混合哪两家也有影响：Tavily 和 DeepSeek 交替在这组题里只有 106 分。实际效果取决于你的问题。
+
+## magpie 自带的混合模式
+
+magpie v0.1.3199 起，可以把它自己「联网搜索」列表里配好的搜索 API 混合起来用，来自 [yetone/magpie#2845](https://github.com/yetone/magpie/issues/2845)。默认关闭，目前只能用命令行开关：
+
+```sh
+magpie search mix deepseek,you,tavily
+magpie search mix off
+```
+
+它同时问所有参与混合的 API，最多给这次搜索条数的 2 倍，不超过 20 条。这个插件有三点不同：
+
+- 同时只问 `width` 个来源（默认 2 个），其余的等着顶替失败的那个，所以每次搜索调用 API 的次数更少；
+- 给出的结果不超过这次搜索要的条数；
+- 来源和密钥都写在插件自己的密钥栏里，不用在 magpie 的列表里逐个配置。
+
+如果你的 magpie 已经有自带的混合模式，又用不着这几点，建议先试自带的。
 
 ## 费用
 

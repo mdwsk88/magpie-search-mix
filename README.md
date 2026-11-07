@@ -1,4 +1,4 @@
-# Search Mix for magpie
+# magpie-search-mix
 
 [中文说明](README.zh-CN.md)
 
@@ -6,9 +6,11 @@ A web search API for [magpie](https://github.com/yetone/magpie) that asks two or
 
 An unofficial community plugin by mdwsk88. It is not part of magpie.
 
+magpie v0.1.3199 and later can also mix search APIs by itself. See [magpie's own mix mode](#magpies-own-mix-mode) for how the two differ.
+
 ## What it does
 
-When an agent searches through magpie (Claude Code's WebSearch, Codex's web_search, or magpie's web-search MCP server) and Search Mix is first in magpie's Web search list:
+When an agent searches through magpie (Claude Code's WebSearch, Codex's web_search, or magpie's web-search MCP server) and magpie-search-mix is first in magpie's Web search list:
 
 1. It asks the first two of its sources at once.
 2. A source that fails, finds nothing, takes longer than 10 seconds, or has every key resting after a refusal gives its place to the next source that hasn't been asked yet.
@@ -40,7 +42,7 @@ magpie plugin add github:mdwsk88/magpie-search-mix
 
 ## Set it up
 
-In magpie's **Settings › Models › Web search**, add **Search Mix**, move it to the top, and write its sources in its key field, joined by `+`:
+In magpie's **Settings › Models › Web search**, add **magpie-search-mix**, move it to the top, and write its sources in its key field, joined by `+`:
 
 ```text
 deepseek=sk-…+you+tavily=tvly-…
@@ -66,7 +68,7 @@ The key field holds the sources in the order they are asked, joined by `+`. Each
 | `searxng@https://searx.example.com` | your SearXNG |
 | `tavily=tvly-a@https://relay.example.com/tavily` | Tavily at an address of your own, as magpie's `url=` |
 
-Use `+` between sources, not spaces, commas or semicolons: magpie splits a key field at those into several keys and hands a search API one of them per search. If Search Mix is handed a single source, it says so in magpie's request log rather than search with it.
+Use `+` between sources, not spaces, commas or semicolons: magpie splits a key field at those into several keys and hands a search API one of them per search. If the plugin is handed a single source, it says so in magpie's request log rather than search with it.
 
 The keys stay in magpie's own key store, masked in its window. The plugin sends each key only to its own API, or to the address you set for that source. It reads no file of magpie's.
 
@@ -84,7 +86,7 @@ magpie plugin options magpie-search-mix '{"width": 3}'
 
 ## How many pages
 
-magpie gives the agent a search API's pages up to the number the search asked for. Claude Code's WebSearch asks for 6; magpie's web-search MCP server for 1 to 20, 6 by default. So Search Mix mixes within that number. It can't hand over every page each source found: that needs a mix inside magpie, which [yetone/magpie#2845](https://github.com/yetone/magpie/issues/2845) asks for. Once magpie has one, you won't need this plugin.
+magpie gives the agent a search API's pages up to the number the search asked for. Claude Code's WebSearch and Codex's web_search name no number, so magpie uses its **Results per search** setting: 6 by default, 1 to 20 (magpie v0.1.3199 and later; before that, always 6). magpie's web-search MCP server takes the number its caller names, 1 to 20. This plugin mixes within that number.
 
 In a small personal test of 60 questions, each with a known answer and official site, 6 pages were scored on whether they held the official site and the answer (120 points in all):
 
@@ -97,6 +99,23 @@ In a small personal test of 60 questions, each with a known answer and official 
 | DeepSeek alone | 94 |
 
 With only 6 pages, a third source mostly pushes out good pages of the first two, which is why `width` is 2. Which API was best alone changed with the questions: Tavily on an earlier set of 20, You.com on these 60. Which two you mix matters too: Tavily and DeepSeek in turn scored 106 here. Your results will depend on your questions.
+
+## magpie's own mix mode
+
+magpie v0.1.3199 and later can mix the search APIs set up in its own Web search list, from [yetone/magpie#2845](https://github.com/yetone/magpie/issues/2845). It is off by default and set from a terminal only:
+
+```sh
+magpie search mix deepseek,you,tavily
+magpie search mix off
+```
+
+It asks all the APIs it mixes at once and gives the agent up to twice the search's number of pages, at most 20. This plugin differs in three ways:
+
+- It asks `width` sources at once, 2 by default. The others wait to take the place of one that fails, so a search costs fewer API calls.
+- Its pages stay within the search's number.
+- Its sources and their keys are written in its own key field, not set up one by one in magpie's list.
+
+If your magpie has its own mix mode and you don't need these, try that first.
 
 ## Costs
 

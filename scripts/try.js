@@ -1,6 +1,6 @@
 // Try one search with real APIs, outside magpie, and see what each source did:
 //   SEARCH_MIX_SOURCES='you+tavily=tvly-…' bun scripts/try.js "a question" [count] [width]
-// The sources are written as in Search Mix's key field. No key is printed.
+// The sources are written as in magpie-search-mix's key field. No key is printed.
 
 import { parseSources } from "../src/config.js"
 import { mixSearch } from "../src/mix.js"

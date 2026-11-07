@@ -1,4 +1,4 @@
-// Search Mix: a web search API for magpie that asks two (or more) search APIs
+// magpie-search-mix: a web search API for magpie that asks two (or more) search APIs
 // at once and merges their pages. Its sources and their keys are written in
 // its key field in Settings › Models › Web search; see README.md.
 //
@@ -16,14 +16,14 @@ export const SearchMix = async (_input, options = {}) => {
   return {
     search: {
       mix: {
-        name: "Search Mix",
+        name: "magpie-search-mix",
         keysURL: "https://github.com/mdwsk88/magpie-search-mix#set-it-up",
         keyOptional: false,
         async execute({ query, count, key }, ctx) {
           const sources = parseSources(key)
           // one source is what magpie hands over when the sources were split
           // by spaces or commas: magpie takes those as several keys, one a search
-          if (sources.length < 2) throw new ConfigError(`Search Mix got one source (${sources[0].label}), so it has nothing to mix: ${HOW}`)
+          if (sources.length < 2) throw new ConfigError(`magpie-search-mix got one source (${sources[0].label}), so it has nothing to mix: ${HOW}`)
           return mixSearch({ query, count, sources, width, perSourceMs, signal: ctx?.abort, log })
         },
       },

@@ -17,10 +17,10 @@ test("the entry exports one function, the plugin: magpie calls every function it
   expect(Object.values(mod).filter((v) => typeof v === "function").length).toBe(1)
 })
 
-test("its search API is named Search Mix, needs its key field, and links how to write it", async () => {
+test("its search API is named magpie-search-mix, needs its key field, and links how to write it", async () => {
   const { SearchMix } = await import("../index.js")
   const mix = (await SearchMix({}, {})).search.mix
-  expect(mix.name).toBe("Search Mix")
+  expect(mix.name).toBe("magpie-search-mix")
   expect(mix.keyOptional).toBe(false)
   expect(mix.keysURL).toMatch(/^https:\/\//)
 })
