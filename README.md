@@ -111,7 +111,7 @@ magpie search mix off
 
 It asks all the APIs it mixes at once and gives the agent up to twice the search's number of pages, at most 20. This plugin differs in three ways:
 
-- It asks `width` sources at once, 2 by default. The others wait to take the place of one that fails, so a search costs fewer API calls.
+- It asks `width` sources at once, 2 by default; the others only stand in for one that fails. So when you mix three or more APIs, a search asks fewer of them than magpie's mode, which asks every mixed API each time.
 - Its pages stay within the search's number.
 - Its sources and their keys are written in its own key field, not set up one by one in magpie's list.
 
