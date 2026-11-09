@@ -1,0 +1,71 @@
+# Claude Code in GitHub Actions.
+#
+# Someone who can write to this repository mentions @claude in an issue or a
+# pull request. Claude works on its own branch, runs the tests, and replies
+# with a link to open a pull request. It cannot merge, and main is protected:
+# the owner opens, reviews and merges every pull request. CLAUDE.md holds the
+# rules it follows.
+#
+# Set up once by the owner:
+# - install the Claude GitHub App on this repository: https://github.com/apps/claude
+# - add one repository secret, either
+#   CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`; uses a Claude subscription) or
+#   ANTHROPIC_API_KEY (a Claude API key; billed by use)
+#
+# To choose the model, add a line such as `--model claude-sonnet-5-5` to claude_args.
+
+name: claude
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened]
+
+permissions: {}
+
+concurrency:
+  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    # Only a mention by someone who can write here starts a runner.
+    # The action checks write access again before Claude starts.
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association)) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          # Set one of these two secrets; the other stays empty.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          additional_permissions: |
+            actions: read
+          # Only the owner's comments reach Claude; others' comments may carry
+          # instructions. The issue's own text is still read.
+          include_comments_by_actor: mdwsk88
+          claude_args: |
+            --max-turns 40
+            --allowedTools "Bash(bun test),Bash(bun test:*)"
