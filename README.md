@@ -55,7 +55,7 @@ magpie search add magpie-search-mix:mix 'deepseek=sk-…+you+tavily=tvly-…'
 magpie search move magpie-search-mix:mix 1
 ```
 
-The key field holds the sources in the order they are asked, joined by `+`. Each source is:
+The key field holds the sources in the order they are asked (unless the `order` option is `"random"`), joined by `+`. Each source is:
 
 ```text
 <id>[=<key>[|<key>…]][@<base url>]
@@ -81,6 +81,7 @@ magpie plugin options magpie-search-mix '{"width": 3}'
 | Option | Default | Meaning |
 |---|---|---|
 | `width` | `2` | how many sources are asked at once |
+| `order` | `"listed"` | the order the sources are asked in: `"listed"`, as written in the key field; `"random"`, shuffled anew for each search. `{"width": 1, "order": "random"}` asks one source at random each time, the next taking its place if it fails |
 | `perSourceSeconds` | `10` | how long a source is waited for before the next one takes its place |
 | `logDir` | none | a folder to log each search to (`search-mix.jsonl`): each source's time, pages or error. Never the query or a key |
 

@@ -11,6 +11,7 @@ import { mixSearch } from "./src/mix.js"
 
 export const SearchMix = async (_input, options = {}) => {
   const width = Math.max(1, Math.trunc(Number(options?.width)) || 2)
+  const order = options?.order === "random" ? "random" : "listed"
   const perSourceMs = Math.max(1, Number(options?.perSourceSeconds) || 10) * 1000
   const log = typeof options?.logDir === "string" && options.logDir ? makeLog(options.logDir) : undefined
   return {
@@ -24,7 +25,7 @@ export const SearchMix = async (_input, options = {}) => {
           // one source is what magpie hands over when the sources were split
           // by spaces or commas: magpie takes those as several keys, one a search
           if (sources.length < 2) throw new ConfigError(`magpie-search-mix got one source (${sources[0].label}), so it has nothing to mix: ${HOW}`)
-          return mixSearch({ query, count, sources, width, perSourceMs, signal: ctx?.abort, log })
+          return mixSearch({ query, count, sources, width, order, perSourceMs, signal: ctx?.abort, log })
         },
       },
     },

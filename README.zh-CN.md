@@ -55,7 +55,7 @@ magpie search add magpie-search-mix:mix 'deepseek=sk-…+you+tavily=tvly-…'
 magpie search move magpie-search-mix:mix 1
 ```
 
-密钥栏按提问顺序写来源，来源之间用 `+` 连接。每个来源的写法：
+密钥栏按提问顺序写来源（`order` 选项设为 `"random"` 时除外），来源之间用 `+` 连接。每个来源的写法：
 
 ```text
 <标识>[=<密钥>[|<密钥>…]][@<基础地址>]
@@ -81,6 +81,7 @@ magpie plugin options magpie-search-mix '{"width": 3}'
 | 选项 | 默认 | 含义 |
 |---|---|---|
 | `width` | `2` | 同时问几个来源 |
+| `order` | `"listed"` | 问来源的顺序：`"listed"` 按密钥栏里写的顺序；`"random"` 每次搜索先随机打乱。`{"width": 1, "order": "random"}` 就是每次随机问一家，失败时由下一家顶上 |
 | `perSourceSeconds` | `10` | 每个来源最多等几秒，超时由下一个顶上 |
 | `logDir` | 无 | 写日志的文件夹（`search-mix.jsonl`）：每个来源的用时、条数或错误；不记查询词和密钥 |
 

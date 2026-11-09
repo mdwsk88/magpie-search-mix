@@ -1,13 +1,13 @@
 // Try one search with real APIs, outside magpie, and see what each source did:
-//   SEARCH_MIX_SOURCES='you+tavily=tvly-…' bun scripts/try.js "a question" [count] [width]
+//   SEARCH_MIX_SOURCES='you+tavily=tvly-…' bun scripts/try.js "a question" [count] [width] [order]
 // The sources are written as in magpie-search-mix's key field. No key is printed.
 
 import { parseSources } from "../src/config.js"
 import { mixSearch } from "../src/mix.js"
 
-const [query, count, width] = process.argv.slice(2)
+const [query, count, width, order] = process.argv.slice(2)
 if (!query || !process.env.SEARCH_MIX_SOURCES) {
-  console.error(`usage: SEARCH_MIX_SOURCES='you+tavily=<key>' bun scripts/try.js "a question" [count] [width]`)
+  console.error(`usage: SEARCH_MIX_SOURCES='you+tavily=<key>' bun scripts/try.js "a question" [count] [width] [order]`)
   process.exit(2)
 }
 const sources = parseSources(process.env.SEARCH_MIX_SOURCES)
@@ -16,7 +16,7 @@ let entry
 let pages = []
 let failed
 try {
-  pages = await mixSearch({ query, count, width: Number(width) || 2, sources, log: (e) => (entry = e), signal: AbortSignal.timeout(30_000) })
+  pages = await mixSearch({ query, count, width: Number(width) || 2, order, sources, log: (e) => (entry = e), signal: AbortSignal.timeout(30_000) })
 } catch (e) {
   failed = e
 }

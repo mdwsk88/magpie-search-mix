@@ -3,7 +3,8 @@
 //
 //   deepseek=sk-…+you+tavily=tvly-a|tvly-b+searxng@https://searx.example.com
 //
-// Sources are joined by "+", in the order they are asked. Each is
+// Sources are joined by "+", in the order they are asked unless the plugin's
+// option {"order": "random"} shuffles them for each search. Each is
 //   <api>[=<key>[|<key>…]][@<base url>]
 // magpie splits a key field at commas, semicolons, spaces and new lines into
 // several keys and hands a search API one of them per search, so the sources

@@ -7,8 +7,10 @@ import { VERSION } from "../src/vendors.js"
 
 const root = join(import.meta.dir, "..")
 const realFetch = globalThis.fetch
+const realRandom = Math.random
 afterEach(() => {
   globalThis.fetch = realFetch
+  Math.random = realRandom
   resetState()
 })
 
@@ -37,6 +39,24 @@ test("a search reads its sources from the key field it is handed", async () => {
   const got = await mix.execute({ query: "q", count: 6, key: "deepseek=sk-z+you", url: "" }, { abort: AbortSignal.timeout(5000) })
   expect(got.map((p) => p.title)).toEqual(["D1", "Y1", "D2", "Y2"])
   expect(asked.length).toBe(2)
+})
+
+test('{"width": 1, "order": "random"} asks one source at random for each search; without "order" they are asked as listed', async () => {
+  const { SearchMix } = await import("../index.js")
+  const asked = []
+  globalThis.fetch = async (url) => {
+    const d = url.includes("deepseek")
+    asked.push(d ? "deepseek" : "you")
+    return new Response(JSON.stringify(d ? { results: [{ title: "D1", url: "https://d.example/1" }] } : { results: { web: [{ title: "Y1", url: "https://y.example/1" }] } }))
+  }
+  const search = async (options) => (await SearchMix({}, options)).search.mix.execute({ query: "q", count: 6, key: "deepseek=sk-z+you" }, { abort: AbortSignal.timeout(5000) })
+  // shuffled with 0, [deepseek, you] comes out [you, deepseek]; with 0.9 it stays
+  Math.random = () => 0
+  await search({ width: 1 })
+  await search({ width: 1, order: "random" })
+  Math.random = () => 0.9
+  await search({ width: 1, order: "random" })
+  expect(asked).toEqual(["deepseek", "you", "deepseek"])
 })
 
 test("a key field that can't be read is a plain error: magpie asks its next search API and doesn't rest the field", async () => {
