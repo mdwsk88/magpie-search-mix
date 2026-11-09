@@ -6,6 +6,10 @@
 // taken in turn, in the sources' order (each one's first, then each one's
 // second…), a page two sources found kept once, at most `count`.
 //
+// The sources' order is the key field's ("listed", the default) or, with
+// order "random", shuffled anew for each search; all of the above then
+// follows the shuffled order.
+//
 // Nothing found anywhere is no pages: magpie then asks the next search API
 // in its list. Every source failing is a plain error, never one with a
 // status, so magpie doesn't rest the key field it came from.
@@ -206,7 +210,21 @@ function hide(text, query, keys) {
   return s.slice(0, 300)
 }
 
-export async function mixSearch({ query, count, sources, width = 2, perSourceMs = 10_000, signal, fetchImpl = fetch, now = Date.now, log }) {
+// shuffled is a copy of list in an order drawn with random (Fisher–Yates),
+// every order as likely as any other
+function shuffled(list, random) {
+  const out = [...list]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    const t = out[i]
+    out[i] = out[j]
+    out[j] = t
+  }
+  return out
+}
+
+export async function mixSearch({ query, count, sources: listed, width = 2, order = "listed", perSourceMs = 10_000, signal, fetchImpl = fetch, now = Date.now, random = Math.random, log }) {
+  const sources = order === "random" ? shuffled(listed, random) : listed
   const n = countOf(count)
   const started = now()
   const queue = [...sources]

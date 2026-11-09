@@ -30,6 +30,13 @@ function fakeFetch(plan) {
   return f
 }
 
+// draws hands out these numbers in turn, as Math.random would. Shuffled with
+// draws 0 and 0.5, [D, Y, T] comes out [T, Y, D]; with 0.9 and 0.9 it stays.
+const draws = (...rs) => {
+  let i = 0
+  return () => rs[i++ % rs.length]
+}
+
 beforeEach(() => resetState())
 
 describe("keys", () => {
@@ -162,5 +169,34 @@ describe("a mixed search", () => {
     expect(e.asked.find((a) => a.source === "deepseek").status).toBe(401)
     expect(line).not.toContain("private words")
     expect(line).not.toContain("sk-deepseek-secret-1234")
+  })
+})
+
+describe("order", () => {
+  test('"random" shuffles the sources anew for each search and takes their pages in that order', async () => {
+    const f = fakeFetch({ deepseek: ok(deepseekReply(urls("d", 2))), you: ok(youReply(urls("y", 2))), tavily: ok(tavilyReply(urls("t", 2))) })
+    const random = draws(0, 0.5, 0.9, 0.9)
+    const first = await mixSearch({ query: "q", count: 6, sources: [D, Y, T], order: "random", random, fetchImpl: f })
+    const second = await mixSearch({ query: "q", count: 6, sources: [D, Y, T], order: "random", random, fetchImpl: f })
+    expect(first.map((p) => p.title)).toEqual(["T1", "Y1", "T2", "Y2"])
+    expect(second.map((p) => p.title)).toEqual(["D1", "Y1", "D2", "Y2"])
+  })
+
+  test('"random": one that fails gives its place to the next in the shuffled order', async () => {
+    const f = fakeFetch({ deepseek: ok(deepseekReply(urls("d", 2))), you: ok(youReply(urls("y", 2))), tavily: new Response("boom", { status: 500 }) })
+    const got = await mixSearch({ query: "q", count: 6, sources: [D, Y, T], width: 1, order: "random", random: draws(0, 0.5), fetchImpl: f })
+    expect(f.calls.map((c) => c.v)).toEqual(["tavily", "you"])
+    expect(got.map((p) => p.title)).toEqual(["Y1", "Y2"])
+  })
+
+  test('"listed", the default, asks in the key field\'s order and draws nothing', async () => {
+    const f = fakeFetch({ deepseek: ok(deepseekReply(urls("d", 2))), you: ok(youReply(urls("y", 2))) })
+    const random = () => {
+      throw new Error("drew a number")
+    }
+    for (const order of [undefined, "listed"]) {
+      const got = await mixSearch({ query: "q", count: 6, sources: [D, Y, T], order, random, fetchImpl: f })
+      expect(got.map((p) => p.title)).toEqual(["D1", "Y1", "D2", "Y2"])
+    }
   })
 })
