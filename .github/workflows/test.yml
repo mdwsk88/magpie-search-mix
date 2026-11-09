@@ -2,7 +2,7 @@ name: test
 on:
   push:
   pull_request:
-  # Started by the claude workflow on Claude's branch, or by hand.
+  # Run by hand on any branch.
   workflow_dispatch:
 jobs:
   test:
