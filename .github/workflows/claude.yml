@@ -1,16 +1,18 @@
 # Claude Code in GitHub Actions.
 #
-# Someone who can write to this repository mentions @claude in an issue or a
-# pull request. Claude works on its own branch, runs the tests, and replies
-# with a link to open a pull request. It cannot merge, and main is protected:
-# the owner opens, reviews and merges every pull request. CLAUDE.md holds the
-# rules it follows.
+# Someone who can write to this repository mentions @claude in an issue, or in
+# a pull request's conversation. Claude works on its own branch, may run only
+# `bun test`, and replies with a link to open a pull request. It cannot merge,
+# and main is protected: the owner opens, reviews and merges every pull request.
+# CLAUDE.md holds the rules it follows.
 #
-# Set up once by the owner:
-# - install the Claude GitHub App on this repository: https://github.com/apps/claude
-# - add one repository secret, either
+# Claude acts with this run's own GITHUB_TOKEN, not with a GitHub App. The
+# token lasts one run, cannot change workflow files, and what it pushes starts
+# no workflow, so the second job starts the tests on Claude's branch instead.
+#
+# Set up once by the owner: add one repository secret, either
 #   CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`; uses a Claude subscription) or
-#   ANTHROPIC_API_KEY (a Claude API key; billed by use)
+#   ANTHROPIC_API_KEY (a Claude API key; billed by use).
 #
 # To choose the model, add a line such as `--model claude-sonnet-5-5` to claude_args.
 
@@ -19,17 +21,13 @@ name: claude
 on:
   issue_comment:
     types: [created]
-  pull_request_review_comment:
-    types: [created]
-  pull_request_review:
-    types: [submitted]
   issues:
     types: [opened]
 
 permissions: {}
 
 concurrency:
-  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+  group: claude-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
@@ -38,8 +36,6 @@ jobs:
     # The action checks write access again before Claude starts.
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association)) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -47,8 +43,12 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-      id-token: write
       actions: read
+    outputs:
+      branch: ${{ steps.claude.outputs.branch_name }}
+    env:
+      # Take secrets out of the environment of the commands Claude runs.
+      CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
     steps:
       - uses: actions/checkout@v6
         with:
@@ -56,8 +56,10 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - uses: anthropics/claude-code-action@v1
+      - id: claude
+        uses: anthropics/claude-code-action@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           # Set one of these two secrets; the other stays empty.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -69,3 +71,29 @@ jobs:
           claude_args: |
             --max-turns 40
             --allowedTools "Bash(bun test),Bash(bun test:*)"
+
+  branch-tests:
+    # A push made with GITHUB_TOKEN starts no workflow, but a workflow_dispatch
+    # does. The test run lands on the branch's last commit, so it counts as the
+    # `test` check of its pull request.
+    needs: claude
+    if: always() && needs.claude.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Run the tests on Claude's branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ needs.claude.outputs.branch }}
+          PR: ${{ github.event.issue.pull_request && github.event.issue.number || '' }}
+        run: |
+          if [ -z "$BRANCH" ] && [ -n "$PR" ]; then
+            BRANCH=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json headRefName --jq .headRefName)
+          fi
+          if [ -z "$BRANCH" ]; then
+            echo "No branch to test."
+            exit 0
+          fi
+          gh workflow run test.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH" || echo "Could not start the tests on $BRANCH."

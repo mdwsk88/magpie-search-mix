@@ -1,6 +1,6 @@
 # Notes for coding agents
 
-People ask for work by mentioning @claude in an issue or a pull request.
+People ask for work by mentioning @claude in an issue, or in a pull request's conversation.
 Claude works on its own branch and replies with a link to open a pull request.
 The owner reviews every change, merges it, and releases.
 

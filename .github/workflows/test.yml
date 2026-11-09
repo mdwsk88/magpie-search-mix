@@ -2,6 +2,8 @@ name: test
 on:
   push:
   pull_request:
+  # Started by the claude workflow on Claude's branch, or by hand.
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
