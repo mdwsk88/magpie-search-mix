@@ -9,5 +9,6 @@
 - Broken on purpose:
 - Whole suite (`bun test`):
 - Both READMEs:
+- Version (the merge publishes it to npm), or "nothing npm ships changed":
 
 **Not run or not tried:**

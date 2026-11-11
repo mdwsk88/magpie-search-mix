@@ -1,6 +1,6 @@
 {
   "name": "magpie-search-mix",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Mixes two search APIs for the AI: more accurate than one. Try DeepSeek + Tavily or You.com.",
   "type": "module",
   "main": "index.js",
@@ -36,10 +36,11 @@
     "name": "magpie-search-mix",
     "summary": {
       "en": "Mixes two search APIs for the AI: more accurate than one. Try DeepSeek + Tavily or You.com.",
-      "zh": "同时问两家搜索 API，混合结果交给 AI，比只用一家更准。如 DeepSeek 搭配 Tavily 或 You.com。"
+      "zh": "混合搜索：同时问两家搜索 API，比只用一家更准。如 DeepSeek 搭配 Tavily 或 You.com。"
     },
     "options": {
       "width": 2,
+      "order": "listed",
       "perSourceSeconds": 10,
       "logDir": ""
     }
