@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { ConfigError } from "../src/config.js"
 import { resetState } from "../src/mix.js"
-import { VERSION } from "../src/vendors.js"
+import { VENDORS, VERSION } from "../src/vendors.js"
 
 const root = join(import.meta.dir, "..")
 const realFetch = globalThis.fetch
@@ -97,4 +97,23 @@ test("it reads no file of magpie's: its sources and keys come only from its key 
 
 test("its version is the package's", () => {
   expect(VERSION).toBe(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version)
+})
+
+// How wide a text is on its plugin card in magpie, in Chinese characters, as
+// measured on the card in issue #3's screenshot: a line holds 25 Chinese
+// characters; a small Latin letter is 0.5 of one, a space 0.3, a capital,
+// digit or mark 0.65. The card shows two lines of the summary, then "…".
+const cardWidth = (text) => [...text].reduce((w, c) => w + (c.codePointAt(0) >= 0x2e80 ? 1 : c === " " ? 0.3 : c >= "a" && c <= "z" ? 0.5 : 0.65), 0)
+const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
+
+test("its summary fits the two lines of its card in magpie, in each language, and so does its description", () => {
+  const texts = { ...pkg.magpie.summary, description: pkg.description }
+  // two lines of 25, less 5 for a word that wraps to the second line early
+  const tooWide = Object.entries(texts).filter(([, t]) => cardWidth(t) > 45).map(([k, t]) => `${k}: ${cardWidth(t).toFixed(1)}`)
+  expect(tooWide).toEqual([])
+})
+
+test("its summary names the same search APIs in each language", () => {
+  const named = (text) => Object.values(VENDORS).map((v) => v.name.split(" ")[0]).filter((n) => text.includes(n))
+  expect(named(pkg.magpie.summary.zh)).toEqual(named(pkg.magpie.summary.en))
 })

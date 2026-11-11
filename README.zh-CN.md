@@ -4,6 +4,8 @@
 
 给 [magpie](https://github.com/yetone/magpie) 加一个联网搜索 API：一次同时问两家（或更多）搜索 API，把它们找到的网页一起交给智能体。各家结果交替排列，几家都找到的同一网页只留一条。
 
+两家混合往往比只用一家更准：比如 DeepSeek 找中文网页可能更好，Tavily 或 You.com 找其他网页可能更好。在[一次小规模测试](#最多给几条)里，DeepSeek 和 You.com 交替的得分比只用其中任何一家都高。
+
 这是 mdwsk88 写的非官方社区插件，不属于 magpie。
 
 magpie v0.1.3199 及以后的版本自己也能混合搜索，两者的区别见 [magpie 自带的混合模式](#magpie-自带的混合模式)。
