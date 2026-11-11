@@ -106,6 +106,20 @@ test("its version is the package's", () => {
 const cardWidth = (text) => [...text].reduce((w, c) => w + (c.codePointAt(0) >= 0x2e80 ? 1 : c === " " ? 0.3 : c >= "a" && c <= "z" ? 0.5 : 0.65), 0)
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
 
+// The options a README's Options section lists in its table, by name.
+const optionsListed = (readme, heading) => {
+  const section = readFileSync(join(root, readme), "utf8").split(/^## /m).find((s) => s.startsWith(heading + "\n")) ?? ""
+  return [...section.matchAll(/^\| `(\w+)` \|/gm)].map((m) => m[1])
+}
+
+test("every option its READMEs list is one magpie shows in its options", () => {
+  for (const [readme, heading] of [["README.md", "Options"], ["README.zh-CN.md", "选项"]]) {
+    const listed = optionsListed(readme, heading)
+    expect(listed.length).toBeGreaterThan(0)
+    expect(Object.keys(pkg.magpie.options).sort()).toEqual([...listed].sort())
+  }
+})
+
 test("its summary fits the two lines of its card in magpie, in each language, and so does its description", () => {
   const texts = { ...pkg.magpie.summary, description: pkg.description }
   // two lines of 25, less 5 for a word that wraps to the second line early

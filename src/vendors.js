@@ -11,7 +11,7 @@
 //                                                          send with a 200
 // Adding a search API is adding an entry here, with tests in test/vendors.test.js.
 
-export const VERSION = "0.1.2"
+export const VERSION = "0.2.0"
 export const USER_AGENT = `magpie-search-mix/${VERSION} (+https://github.com/mdwsk88/magpie-search-mix)`
 
 // the most of a page's text passed on; magpie cuts it again to its own limit

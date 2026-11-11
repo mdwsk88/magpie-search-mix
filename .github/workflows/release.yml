@@ -1,0 +1,77 @@
+name: release
+# Publishes to npm when a merge to main carries a version npm doesn't have
+# yet, then tags it and writes a GitHub release. A merge that leaves the
+# version alone publishes nothing (test.yml makes a pull request that changes
+# what npm ships raise the version).
+#
+# npm trusts this workflow (trusted publishing over OIDC), so no npm token is
+# stored anywhere, and npm adds a provenance statement on its own. Set up once
+# on npmjs.com: magpie-search-mix › Settings › Trusted publishing › GitHub
+# Actions: user mdwsk88, repository magpie-search-mix, workflow release.yml,
+# environment npm, and allow npm publish. The npm environment in this
+# repository only lets protected branches (main) deploy.
+on:
+  push:
+    branches: [main]
+  # To publish again by hand after fixing something on the npm side.
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      new: ${{ steps.version.outputs.new }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is this version new to npm?
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [ "$(npm view "magpie-search-mix@$version" version 2>/dev/null)" = "$version" ]; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+            echo "npm already has $version: nothing to publish."
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+            echo "npm doesn't have $version yet: publishing it."
+          fi
+
+  publish:
+    needs: check
+    if: needs.check.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: write # the tag and the GitHub release
+      id-token: write # npm trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Test what is about to be published
+        run: bun test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Use an npm that can publish without a token (11.5.1 or later)
+        run: |
+          npm install --global npm@^11.5.1
+          npm --version
+      - name: Publish to npm
+        run: npm publish
+      - name: Tag it and write a GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "v$VERSION" --generate-notes

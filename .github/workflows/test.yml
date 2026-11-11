@@ -9,5 +9,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # the pull request's merge commit and the base it merges into
+          fetch-depth: 2
       - uses: oven-sh/setup-bun@v2
       - run: bun test
+      # A merge to main publishes to npm when the version is new (release.yml),
+      # so a pull request that changes what npm ships has to raise it.
+      - name: A change to what npm ships carries a version npm doesn't have yet
+        if: github.event_name == 'pull_request'
+        run: |
+          changed=$(git diff --name-only HEAD^1 HEAD -- index.js src package.json README.md README.zh-CN.md LICENSE)
+          if [ -z "$changed" ]; then
+            echo "Nothing npm ships changed."
+            exit 0
+          fi
+          version=$(node -p "require('./package.json').version")
+          if [ "$(npm view "magpie-search-mix@$version" version 2>/dev/null)" = "$version" ]; then
+            files=$(echo "$changed" | tr '\n' ' ')
+            echo "::error::npm already has $version, and these files npm ships changed: $files. Raise version in package.json and VERSION in src/vendors.js."
+            exit 1
+          fi
+          echo "npm doesn't have $version yet: merging this publishes it."
