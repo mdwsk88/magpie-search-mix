@@ -35,6 +35,28 @@ Each one is asked, and its reply read, the way magpie asks the same API in its o
 | `volcengine` | Doubao Search (Volcengine) | needed |
 | `wsa` | Yuanbao Search (Tencent Cloud) | needed |
 | `searxng` | SearXNG | optional; needs its address |
+| `anysearch` | AnySearch | optional: without one, its public search |
+| `bocha` | Bocha | needed |
+| `jina` | Jina | needed |
+| `kagi` | Kagi | needed |
+| `keenable` | Keenable | optional: without one, its public endpoint |
+| `linkup` | Linkup | needed |
+| `metaso` | Metaso | needed |
+| `moonshot` | Moonshot | needed |
+| `moonshot-cn` | Moonshot CN | needed |
+| `ollama` | Ollama | needed |
+| `parallel` | Parallel | optional: without one, its keyless MCP search; with one, its REST search |
+| `perplexity` | Perplexity | needed |
+| `querit` | Querit | needed |
+| `serpapi` | SerpApi | needed |
+| `serper` | Serper | needed |
+| `stepfun` | StepFun | needed |
+| `tinyfish` | TinyFish | optional: without one, its keyless MCP search; with one, its REST search |
+| `zai` | Z.ai | needed |
+| `zai-coding` | Z.ai Coding Plan | needed: a Coding Plan key, asked over MCP |
+| `zhipu` | Zhipu | needed |
+| `zhipu-coding` | Zhipu Coding Plan | needed: a Coding Plan key, asked over MCP |
+| `search1api` | Search1API | needed: a static key from s1.dev, not magpie's own login |
 
 ## Install
 
@@ -66,9 +88,12 @@ The key field holds the sources in the order they are asked (unless the `order` 
 | Example | Meaning |
 |---|---|
 | `you` | You.com's free search |
+| `anysearch` | AnySearch's public search, no key |
+| `parallel` | Parallel's keyless MCP search |
 | `tavily=tvly-a\|tvly-b` | Tavily with two keys, taking turns; a refused one rests |
 | `searxng@https://searx.example.com` | your SearXNG |
 | `tavily=tvly-a@https://relay.example.com/tavily` | Tavily at an address of your own, as magpie's `url=` |
+| `search1api=s1-…` | Search1API with its static key |
 
 Use `+` between sources, not spaces, commas or semicolons: magpie splits a key field at those into several keys and hands a search API one of them per search. If the plugin is handed a single source, it says so in magpie's request log rather than search with it.
 
@@ -133,7 +158,7 @@ SEARCH_MIX_SOURCES='you+tavily=tvly-…' bun scripts/try.js "a question"
 
 `scripts/try.js` runs one search with real APIs and prints what each source did and the merged pages, never a key.
 
-To add a search API, add an entry to `src/vendors.js` (how to ask it and how to read its reply) and tests to `test/vendors.test.js`.
+To add a search API, add an entry to `src/vendors.js` (how to ask it and how to read its reply) and tests to `test/vendors.test.js`. One that takes its own request goes in `src/vendors-rest.js`; one that speaks MCP goes in `src/vendors-mcp.js`, over the client in `src/mcp.js`. Their tests are `test/vendors-rest.test.js` and `test/vendors-mcp.test.js`.
 
 ## License
 

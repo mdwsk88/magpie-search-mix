@@ -131,3 +131,99 @@ test("its summary names the same search APIs in each language", () => {
   const named = (text) => Object.values(VENDORS).map((v) => v.name.split(" ")[0]).filter((n) => text.includes(n))
   expect(named(pkg.magpie.summary.zh)).toEqual(named(pkg.magpie.summary.en))
 })
+
+const SOURCE_IDS = [
+  "anysearch",
+  "bocha",
+  "brave",
+  "deepseek",
+  "exa",
+  "firecrawl",
+  "jina",
+  "kagi",
+  "keenable",
+  "linkup",
+  "metaso",
+  "moonshot",
+  "moonshot-cn",
+  "ollama",
+  "parallel",
+  "perplexity",
+  "querit",
+  "search1api",
+  "searxng",
+  "serpapi",
+  "serper",
+  "stepfun",
+  "tavily",
+  "tinyfish",
+  "volcengine",
+  "wsa",
+  "you",
+  "zai",
+  "zai-coding",
+  "zhipu",
+  "zhipu-coding",
+]
+
+const sourcesListed = (readme, heading) => {
+  const section = readFileSync(join(root, readme), "utf8").split(/^## /m).find((s) => s.startsWith(heading + "\n")) ?? ""
+  return [...section.matchAll(/^\| `([a-z0-9-]+)` \|/gm)].map((m) => m[1])
+}
+
+test("it mixes 31 search APIs, and both READMEs list every one under its exact id", () => {
+  expect(Object.keys(VENDORS).sort()).toEqual([...SOURCE_IDS].sort())
+  for (const [readme, heading] of [["README.md", "Search APIs it can mix"], ["README.zh-CN.md", "能混合的搜索 API"]]) {
+    const listed = sourcesListed(readme, heading)
+    expect(new Set(listed).size).toBe(listed.length)
+    expect([...listed].sort()).toEqual([...SOURCE_IDS].sort())
+  }
+})
+
+test("a search mixes a REST source and a keyless MCP source end to end: taken in turn, a page once, its key only to its own API", async () => {
+  const { SearchMix } = await import("../index.js")
+  const mix = (await SearchMix({}, { width: 2 })).search.mix
+  const key = "s1-secret-0123456789"
+  const asked = []
+  globalThis.fetch = async (url, init) => {
+    asked.push({ url, headers: { ...init.headers }, body: String(init.body ?? "") })
+    if (url.startsWith("https://api.search1api.com/search")) {
+      return new Response(
+        JSON.stringify({
+          results: [
+            { title: "S1 first", link: "https://s1.example/one", snippet: "from search1api" },
+            { title: "S1 second", link: "https://shared.example/page", snippet: "second" },
+          ],
+        }),
+      )
+    }
+    if (url === "https://mcp.parallel.ai/mcp") {
+      const body = JSON.parse(String(init.body))
+      return new Response(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: body.id,
+          result: {
+            structuredContent: {
+              results: [
+                { title: "P first", url: "https://p.example/one", excerpts: ["from parallel"] },
+                { title: "P second", url: "https://www.shared.example/page/", excerpts: ["duplicate"], publish_date: "2026-02-02" },
+              ],
+            },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      )
+    }
+    return new Response("unexpected address", { status: 500 })
+  }
+  const got = await mix.execute({ query: "q", count: 6, key: `search1api=${key}+parallel`, url: "" }, { abort: AbortSignal.timeout(5000) })
+  expect(got.map((p) => p.title)).toEqual(["S1 first", "P first", "S1 second"])
+  expect(got[2].text).toBe("second")
+  expect(got[0].text).toBe("from search1api")
+  expect(asked.filter((r) => r.url.includes("api.search1api.com")).length).toBe(1)
+  expect(asked.filter((r) => r.url.includes("mcp.parallel.ai")).length).toBe(1)
+  const leaked = asked.filter((r) => !r.url.includes("api.search1api.com")).filter((r) => `${r.url}\n${JSON.stringify(r.headers)}\n${r.body}`.includes(key))
+  expect(leaked).toEqual([])
+  expect(asked.find((r) => r.url.includes("api.search1api.com")).headers.Authorization).toBe(`Bearer ${key}`)
+})

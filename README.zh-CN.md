@@ -35,6 +35,28 @@ magpie v0.1.3199 及以后的版本自己也能混合搜索，两者的区别见
 | `volcengine` | 豆包搜索（火山引擎） | 需要 |
 | `wsa` | 元宝搜索（腾讯云） | 需要 |
 | `searxng` | SearXNG | 可选；需要它的地址 |
+| `anysearch` | AnySearch | 可选：不填用它的公共搜索 |
+| `bocha` | Bocha | 需要 |
+| `jina` | Jina | 需要 |
+| `kagi` | Kagi | 需要 |
+| `keenable` | Keenable | 可选：不填用它的公共接口 |
+| `linkup` | Linkup | 需要 |
+| `metaso` | Metaso | 需要 |
+| `moonshot` | Moonshot | 需要 |
+| `moonshot-cn` | Moonshot 中国站 | 需要 |
+| `ollama` | Ollama | 需要 |
+| `parallel` | Parallel | 可选：不填走它的匿名 MCP 搜索；填了走 REST 搜索 |
+| `perplexity` | Perplexity | 需要 |
+| `querit` | Querit | 需要 |
+| `serpapi` | SerpApi | 需要 |
+| `serper` | Serper | 需要 |
+| `stepfun` | StepFun | 需要 |
+| `tinyfish` | TinyFish | 可选：不填走它的匿名 MCP 搜索；填了走 REST 搜索 |
+| `zai` | Z.ai | 需要 |
+| `zai-coding` | Z.ai 编程套餐 | 需要：编程套餐（Coding Plan）的密钥，走 MCP |
+| `zhipu` | 智谱 | 需要 |
+| `zhipu-coding` | 智谱编程套餐 | 需要：编程套餐（Coding Plan）的密钥，走 MCP |
+| `search1api` | Search1API | 需要：从 s1.dev 申请的静态密钥，不用 magpie 自己的登录态 |
 
 ## 安装
 
@@ -66,9 +88,12 @@ magpie search move magpie-search-mix:mix 1
 | 例子 | 含义 |
 |---|---|
 | `you` | You.com 免费搜索 |
+| `anysearch` | AnySearch 的公共搜索，不用密钥 |
+| `parallel` | Parallel 的匿名 MCP 搜索 |
 | `tavily=tvly-a\|tvly-b` | Tavily 两把密钥轮流用；被拒的那把先暂停 |
 | `searxng@https://searx.example.com` | 你自己的 SearXNG |
 | `tavily=tvly-a@https://relay.example.com/tavily` | 走你自己的地址访问 Tavily，同 magpie 的 `url=` |
+| `search1api=s1-…` | 用静态密钥访问 Search1API |
 
 来源之间要用 `+`，不要用空格、逗号或分号：magpie 会在这些地方把密钥栏拆成几把“密钥”，每次搜索只交给插件其中一段。插件如果只收到一个来源，会在 magpie 的请求日志里报错说明，而不会只用这一个来源去搜。
 
@@ -133,7 +158,7 @@ SEARCH_MIX_SOURCES='you+tavily=tvly-…' bun scripts/try.js "一个问题"
 
 `scripts/try.js` 用真实接口跑一次搜索，打印每个来源的情况和合并后的结果，不打印密钥。
 
-要增加一个搜索 API，在 `src/vendors.js` 里加一项（怎么问、怎么读回复），并在 `test/vendors.test.js` 里补测试。
+要增加一个搜索 API，在 `src/vendors.js` 里加一项（怎么问、怎么读回复），并在 `test/vendors.test.js` 里补测试。自带整套请求的源写进 `src/vendors-rest.js`；走 MCP 的源写进 `src/vendors-mcp.js`，用的是 `src/mcp.js` 里的客户端。它们的测试分别是 `test/vendors-rest.test.js` 和 `test/vendors-mcp.test.js`。
 
 ## 许可证
 

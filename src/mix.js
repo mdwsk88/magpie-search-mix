@@ -105,6 +105,7 @@ export async function askSource(source, query, n, signal, fetchImpl = fetch, now
   const v = VENDORS[source.vendor]
   const keys = keysInTurn(source, now())
   if (keys.length === 0) throw new Error("every key is resting after a refusal")
+  if (typeof v.execute === "function") return askedByHook(source, keys, query, n, signal, fetchImpl, now)
   let last
   for (const key of keys) {
     const { url, init } = v.request({ base: baseOf(source), key, query, n, url: source.url })
@@ -147,6 +148,32 @@ export async function askSource(source, query, n, signal, fetchImpl = fetch, now
     } catch (e) {
       throw new Error(`unexpected reply: ${e?.message ?? e}`)
     }
+    return pages.slice(0, n)
+  }
+  throw last
+}
+
+// askedByHook asks a source whose vendor makes its own request (execute).
+async function askedByHook(source, keys, query, n, signal, fetchImpl, now) {
+  const v = VENDORS[source.vendor]
+  let last
+  for (const key of keys) {
+    let pages
+    try {
+      pages = await v.execute({ base: baseOf(source), key, query, n, url: source.url, signal, fetchImpl })
+    } catch (e) {
+      if (signal?.aborted) throw new Error("no answer in time")
+      const msg = unsay(e?.message ?? e, key)
+      const status = Number(e?.status)
+      if (!REFUSALS.has(status)) throw new Error(msg)
+      const retryAfter = String(e?.retryAfter ?? "")
+      const r = restFor(source.vendor, status, retryAfter, now())
+      rests.set(keyID(source, key), { until: now() + r.ms, why: r.why })
+      last = new Refused(status, `${msg} (${r.why})`, retryAfter)
+      continue
+    }
+    rests.delete(keyID(source, key))
+    if (!Array.isArray(pages)) throw new Error("unexpected reply: no pages")
     return pages.slice(0, n)
   }
   throw last
