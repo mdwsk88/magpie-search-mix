@@ -4,14 +4,18 @@
 // behaves as that API does in magpie.
 //
 // A vendor is { name, base, paths, keyOptional?, needsURL?, request, pages,
-// inBodyError? }:
+// inBodyError? }, or { name, base, paths, keyOptional?, execute } when the API
+// makes its own request (vendors-rest.js, vendors-mcp.js):
 //   request({ base, key, query, n, url }) → { url, init }  the HTTP request
 //   pages(json) → [{ title, url, text, age }]              its pages, in order
 //   inBodyError(json, status) → { status, msg } | null     an error some APIs
 //                                                          send with a 200
 // Adding a search API is adding an entry here, with tests in test/vendors.test.js.
 
-export const VERSION = "0.2.0"
+import { REST } from "./vendors-rest.js"
+import { MCP } from "./vendors-mcp.js"
+
+export const VERSION = "0.3.0"
 export const USER_AGENT = `magpie-search-mix/${VERSION} (+https://github.com/mdwsk88/magpie-search-mix)`
 
 // the most of a page's text passed on; magpie cuts it again to its own limit
@@ -60,6 +64,19 @@ export function field(o, name) {
 
 function page(title, url, text, age) {
   return { title: plain(title) || url, url, text: clip(plain(text)), age: str(age) }
+}
+
+// webPage drops a hit nobody can open: no http(s) address, or one with a login.
+export function webPage(title, url, text, age) {
+  const s = str(url).trim()
+  let u
+  try {
+    u = new URL(s)
+  } catch {
+    return undefined
+  }
+  if ((u.protocol !== "http:" && u.protocol !== "https:") || u.username || u.password) return undefined
+  return page(title, s, text, age)
 }
 
 // generic reads {results: [{title, url, content | summary | text |
@@ -188,14 +205,14 @@ export function wsaCntFor(n) {
 function headers(extra) {
   return { Accept: "application/json", "User-Agent": USER_AGENT, ...extra }
 }
-function post(url, body, extra = {}) {
+export function post(url, body, extra = {}) {
   return { url, init: { method: "POST", headers: headers({ "Content-Type": "application/json", ...extra }), body: JSON.stringify(body) } }
 }
-function get(url, query, extra = {}) {
+export function get(url, query, extra = {}) {
   const q = new URLSearchParams(Object.entries(query).map(([k, v]) => [k, String(v)]))
   return { url: `${url}?${q}`, init: { method: "GET", headers: headers(extra) } }
 }
-const bearer = (key) => (key ? { Authorization: `Bearer ${key}` } : {})
+export const bearer = (key) => (key ? { Authorization: `Bearer ${key}` } : {})
 
 export const VENDORS = {
   tavily: {
@@ -275,6 +292,8 @@ export const VENDORS = {
     request: ({ base, key, query }) => get(`${base}/search`, { q: query, format: "json" }, bearer(key)),
     pages: (j) => generic(field(j, "results")),
   },
+  ...REST,
+  ...MCP,
 }
 
 // baseOf is where a source is asked: its own address without a closing

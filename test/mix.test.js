@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { makeLog } from "../src/log.js"
-import { askSource, countOf, interleave, keysInTurn, mixSearch, pageKey, resetState, restFor } from "../src/mix.js"
+import { Refused, askSource, countOf, interleave, keysInTurn, mixSearch, pageKey, resetState, restFor } from "../src/mix.js"
 
 const S = (vendor, keys = [], url = "") => ({ vendor, name: vendor, keys, url, label: vendor })
 const D = S("deepseek", ["sk-deepseek-secret-1234"])
@@ -16,7 +16,7 @@ const tavilyReply = (urls) => JSON.stringify({ results: urls.map((u, i) => ({ ti
 const urls = (prefix, n) => Array.from({ length: n }, (_, i) => `https://${prefix}.example/${i + 1}`)
 const ok = (body) => new Response(body, { status: 200 })
 
-const vendorOf = (url) => (url.includes("deepseek") ? "deepseek" : url.includes("tavily") ? "tavily" : "you")
+const vendorOf = (url) => ["deepseek", "tavily", "anysearch", "serper"].find((v) => url.includes(v)) ?? "you"
 function fakeFetch(plan) {
   const calls = []
   const f = async (url, init) => {
@@ -62,6 +62,60 @@ describe("keys", () => {
     const two = S("tavily", ["k1", "k2"])
     expect(keysInTurn(two)).toEqual(["k1", "k2"])
     expect(keysInTurn(two)).toEqual(["k2", "k1"])
+  })
+})
+
+// a source that takes its own request: anysearch's reply is the one read
+const AS = S("anysearch", ["as-one-1111", "as-two-2222"])
+const asReply = (urls) => JSON.stringify({ code: 0, data: { results: urls.map((u, i) => ({ title: `A${i + 1}`, url: u, content: `as ${i + 1}` })) } })
+
+describe("a source that takes its own request", () => {
+  test("its pages come back, at most n", async () => {
+    const f = fakeFetch({ anysearch: ok(asReply(urls("a", 8))) })
+    const pages = await askSource(AS, "q", 3, undefined, f)
+    expect(pages.map((p) => p.title)).toEqual(["A1", "A2", "A3"])
+    expect(f.calls.length).toBe(1)
+    expect(f.calls[0].init.headers.Authorization).toBe("Bearer as-one-1111")
+  })
+
+  test("a refused key rests and the next is asked", async () => {
+    let n = 0
+    const f = fakeFetch({ anysearch: () => (++n === 1 ? new Response('{"message":"slow down"}', { status: 429 }) : ok(asReply(["https://a.example/1"]))) })
+    const pages = await askSource(AS, "q", 6, undefined, f)
+    expect(pages.map((p) => p.url)).toEqual(["https://a.example/1"])
+    expect(f.calls.map((c) => c.init.headers.Authorization)).toEqual(["Bearer as-one-1111", "Bearer as-two-2222"])
+    expect(keysInTurn(AS)).toEqual(["as-two-2222"])
+  })
+
+  test("a key refused with no other is said with its status, and then rests", async () => {
+    const one = S("anysearch", ["as-one-1111"])
+    const f = fakeFetch({ anysearch: () => new Response('{"message":"nope"}', { status: 401 }) })
+    const err = await askSource(one, "q", 6, undefined, f).catch((e) => e)
+    expect(err).toBeInstanceOf(Refused)
+    expect(err.status).toBe(401)
+    expect(err.message).toContain("(turned away)")
+    expect(restFor("anysearch", 401).why).toBe("turned away")
+    const again = await askSource(one, "q", 6, undefined, f).catch((e) => e)
+    expect(again.message).toBe("every key is resting after a refusal")
+    expect(f.calls.length).toBe(1)
+  })
+
+  test("one that took no answer in time is said so", async () => {
+    const c = new AbortController()
+    c.abort()
+    const f = fakeFetch({ anysearch: () => { throw new Error("aborted") } })
+    const err = await askSource(AS, "q", 6, c.signal, f).catch((e) => e)
+    expect(err.message).toBe("no answer in time")
+  })
+
+  test("its error's words are said with the key masked", async () => {
+    const key = "se-143c560fa2"
+    const f = fakeFetch({ serper: () => new Response(JSON.stringify({ message: `key ${key} is not allowed` }), { status: 400 }) })
+    const err = await askSource(S("serper", [key]), "q", 6, undefined, f).catch((e) => e)
+    expect(err).toBeInstanceOf(Error)
+    expect(err.status).toBeUndefined()
+    expect(err.message).toContain("not allowed")
+    expect(err.message).not.toContain(key)
   })
 })
 

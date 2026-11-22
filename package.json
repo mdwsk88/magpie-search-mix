@@ -1,6 +1,6 @@
 {
   "name": "magpie-search-mix",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Mixes two search APIs for the AI: more accurate than one. Try DeepSeek + Tavily or You.com.",
   "type": "module",
   "main": "index.js",
@@ -20,7 +20,10 @@
     "brave-search",
     "exa",
     "searxng",
-    "deepseek"
+    "deepseek",
+    "serper",
+    "search1api",
+    "mcp"
   ],
   "author": "mdwsk88",
   "license": "MIT",

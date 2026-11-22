@@ -246,8 +246,12 @@ describe("addresses and text", () => {
     for (const [id, v] of Object.entries(VENDORS)) {
       expect(typeof v.name).toBe("string")
       expect(Boolean(v.base) || v.needsURL === true).toBe(true)
-      expect(typeof v.request).toBe("function")
-      expect(typeof v.pages).toBe("function")
+      if (typeof v.execute === "function") {
+        expect(v.request).toBeUndefined()
+      } else {
+        expect(typeof v.request).toBe("function")
+        expect(typeof v.pages).toBe("function")
+      }
       expect(id).toMatch(/^[a-z][a-z0-9-]*$/)
     }
   })

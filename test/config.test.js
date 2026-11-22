@@ -53,3 +53,62 @@ describe("the key field", () => {
     expect(parseSources("you tavily=k;brave=b,exa=e").map((s) => s.vendor)).toEqual(["you", "tavily", "brave", "exa"])
   })
 })
+
+describe("the APIs that take their own request", () => {
+  test("they are written by their plain ids: a hyphen kept, a key left out where it is optional", () => {
+    const got = parseSources("anysearch+keenable+moonshot-cn=mk-1+zai=z-1+search1api=s1-1@https://relay.example")
+    expect(got.map((s) => s.vendor)).toEqual(["anysearch", "keenable", "moonshot-cn", "zai", "search1api"])
+    expect(got.map((s) => s.keys)).toEqual([[], [], ["mk-1"], ["z-1"], ["s1-1"]])
+    expect(got[4].url).toBe("https://relay.example")
+    expect(got[0].name).toBe("AnySearch")
+    expect(got[2].name).toBe("Moonshot CN")
+  })
+
+  test("one that needs its key says so, by its plain id", () => {
+    let err
+    try {
+      parseSources("bocha+search1api")
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeInstanceOf(ConfigError)
+    expect(err.message).toContain("source 1: bocha needs its key")
+    expect(err.message).toContain("source 2: search1api needs its key")
+  })
+
+  test("an address may follow several keys of one that takes its own request", () => {
+    const [s] = parseSources("search1api=sk-1|sk-2@https://relay.example/s1")
+    expect(s.keys).toEqual(["sk-1", "sk-2"])
+    expect(s.url).toBe("https://relay.example/s1")
+  })
+})
+
+describe("the MCP and mixed sources", () => {
+  test("their ids are read as written, a hyphen kept, a key left out where it is optional", () => {
+    const got = parseSources("parallel+tinyfish+zai-coding=zc-1|zc-2+zhipu-coding=zp-1@https://relay.example/mcp")
+    expect(got.map((s) => s.vendor)).toEqual(["parallel", "tinyfish", "zai-coding", "zhipu-coding"])
+    expect(got.map((s) => s.keys)).toEqual([[], [], ["zc-1", "zc-2"], ["zp-1"]])
+    expect(got[3].url).toBe("https://relay.example/mcp")
+    expect(got.map((s) => s.name)).toEqual(["Parallel", "TinyFish", "Z.ai Coding Plan", "Zhipu Coding Plan"])
+  })
+
+  test("the coding plans say they need their key, by their plain id", () => {
+    let err
+    try {
+      parseSources("parallel+tinyfish+zai-coding+zhipu-coding")
+    } catch (e) {
+      err = e
+    }
+    expect(err).toBeInstanceOf(ConfigError)
+    expect(err.message).toContain("source 3: zai-coding needs its key")
+    expect(err.message).toContain("source 4: zhipu-coding needs its key")
+    expect(err.message).not.toContain("source 1: parallel needs its key")
+    expect(err.message).not.toContain("source 2: tinyfish needs its key")
+  })
+
+  test("an address may follow the coding plan's key", () => {
+    const [s] = parseSources("zai-coding=zc-key-1234@https://relay.example/zai/mcp")
+    expect(s.keys).toEqual(["zc-key-1234"])
+    expect(s.url).toBe("https://relay.example/zai/mcp")
+  })
+})
